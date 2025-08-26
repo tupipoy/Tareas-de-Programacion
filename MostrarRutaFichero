@@ -1,0 +1,53 @@
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+
+public class MostrarRutaFichero extends JFrame {
+
+    private JTextField textField;
+    private JButton button;
+
+    public MostrarRutaFichero() {
+        setTitle("Mostrar ruta fichero");
+        setSize(400, 120);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new FlowLayout());
+
+        JLabel label = new JLabel("Pulsa en el botón y elige una ruta");
+        add(label);
+
+        textField = new JTextField(20);
+        add(textField);
+
+        button = new JButton("...");
+        add(button);
+
+        // Acción del botón
+        button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                // Filtro solo para archivos .txt
+                FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de texto (*.txt)", "txt");
+                fileChooser.setFileFilter(filter);
+
+                int seleccion = fileChooser.showOpenDialog(null);
+
+                if (seleccion == JFileChooser.APPROVE_OPTION) {
+                    File fichero = fileChooser.getSelectedFile();
+                    textField.setText(fichero.getAbsolutePath());
+                }
+            }
+        });
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new MostrarRutaFichero().setVisible(true);
+        });
+    }
+}
