@@ -1,0 +1,181 @@
+package umg;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.sql.*;
+
+public class carro extends JFrame {
+    private static final String URL = "jdbc:mysql://localhost:3306/umg?useSSL=false&serverTimezone=UTC";
+    private static final String USER = "root";
+    private static final String PASSWORD = "";
+
+    private JTextField txtPlaca, txtMarca, txtModelo, txtColor;
+    private JButton btnInsertar, btnActualizar, btnMostrar;
+    private JTable table;
+    private DefaultTableModel tableModel;
+
+    public carro() {
+        setTitle("Gestión de Carros");
+        setSize(700, 700);  // Cambiado a 700x700
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        // Establecer fondo rojo
+        getContentPane().setBackground(Color.RED);
+
+        // Panel formulario
+        JPanel panelForm = new JPanel(new GridLayout(5, 2, 5, 5));
+        panelForm.setBorder(BorderFactory.createTitledBorder("Datos del Carro"));
+
+        panelForm.add(new JLabel("Placa:"));
+        txtPlaca = new JTextField();
+        panelForm.add(txtPlaca);
+
+        panelForm.add(new JLabel("Marca:"));
+        txtMarca = new JTextField();
+        panelForm.add(txtMarca);
+
+        panelForm.add(new JLabel("Modelo:"));
+        txtModelo = new JTextField();
+        panelForm.add(txtModelo);
+
+        panelForm.add(new JLabel("Color:"));
+        txtColor = new JTextField();
+        panelForm.add(txtColor);
+
+        btnInsertar = new JButton("Insertar");
+        btnActualizar = new JButton("Actualizar");
+        btnMostrar = new JButton("Mostrar");
+
+        JPanel panelButtons = new JPanel();
+        panelButtons.add(btnInsertar);
+        panelButtons.add(btnActualizar);
+        panelButtons.add(btnMostrar);
+
+        // Tabla
+        tableModel = new DefaultTableModel(new String[]{"Placa", "Marca", "Modelo", "Color"}, 0);
+        table = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        setLayout(new BorderLayout(10, 10));
+        add(panelForm, BorderLayout.NORTH);
+        add(panelButtons, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.SOUTH);
+
+        // Listeners botones
+        btnInsertar.addActionListener(e -> insertarCarro());
+        btnActualizar.addActionListener(e -> actualizarCarro());
+        btnMostrar.addActionListener(e -> mostrarCarros());
+    }
+
+    private void insertarCarro() {
+        String placa = txtPlaca.getText();
+        String marca = txtMarca.getText();
+        String modeloStr = txtModelo.getText();
+        String color = txtColor.getText();
+
+        if (placa.isEmpty() || marca.isEmpty() || modeloStr.isEmpty() || color.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor, complete todos los campos");
+            return;
+        }
+
+        int modelo;
+        try {
+            modelo = Integer.parseInt(modeloStr);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Modelo debe ser un número");
+            return;
+        }
+
+        String sqlInsert = "INSERT INTO carro (placa, marca, modelo, color) VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement ps = conn.prepareStatement(sqlInsert)) {
+
+            ps.setString(1, placa);
+            ps.setString(2, marca);
+            ps.setInt(3, modelo);
+            ps.setString(4, color);
+            ps.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Registro insertado");
+            limpiarCampos();
+            mostrarCarros();
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al insertar: " + ex.getMessage());
+        }
+    }
+
+    private void actualizarCarro() {
+        String placa = txtPlaca.getText();
+        String marca = txtMarca.getText();
+
+        if (placa.isEmpty() || marca.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Por favor, ingrese placa y marca para actualizar");
+            return;
+        }
+
+        String sqlUpdate = "UPDATE carro SET marca=? WHERE placa=?";
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement ps = conn.prepareStatement(sqlUpdate)) {
+
+            ps.setString(1, marca);
+            ps.setString(2, placa);
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+                JOptionPane.showMessageDialog(this, "Registro actualizado");
+                limpiarCampos();
+                mostrarCarros();
+            } else {
+                JOptionPane.showMessageDialog(this, "No se encontró registro con esa placa");
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al actualizar: " + ex.getMessage());
+        }
+    }
+
+    private void mostrarCarros() {
+        String sqlSelect = "SELECT * FROM carro";
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sqlSelect)) {
+
+            tableModel.setRowCount(0);
+
+            while (rs.next()) {
+                Object[] fila = {
+                    rs.getString("placa"),
+                    rs.getString("marca"),
+                    rs.getInt("modelo"),
+                    rs.getString("color")
+                };
+                tableModel.addRow(fila);
+            }
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al mostrar datos: " + ex.getMessage());
+        }
+    }
+
+    private void limpiarCampos() {
+        txtPlaca.setText("");
+        txtMarca.setText("");
+        txtModelo.setText("");
+        txtColor.setText("");
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new carro().setVisible(true);
+        });
+    }
+}
